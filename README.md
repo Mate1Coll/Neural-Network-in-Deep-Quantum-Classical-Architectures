@@ -9,7 +9,7 @@ This project provides the code required to perform nonlinear tasks with quantum 
 - **source/** — contains the structure and classes of the project.  
 - **scripts/** — contains the executable programs.  
 - **configs/** — contains YAML files where parameters can be modified to reproduce different types of combinations for analyzing the system’s performance.  
-- **plots/** — contains a Jupyter notebook with the plots used in the thesis work.  
+- **plots.ipynb** — Jupyter notebook with the plots used in the thesis work.  
 
 ---
 
