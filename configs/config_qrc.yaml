@@ -1,0 +1,82 @@
+# This Yaml file contains the parameters for the qrc_observables.py script
+
+qrc_params:
+  L: 9
+  Js: 1
+  dt: 0.5
+  fixed_h: 3
+  fixed_W: 0.01
+  sweep_param: null # None
+  Vmp: 1
+  Dmp: 1
+  N_rep: 1
+  N_iter: 100
+  task_name: 'Qinp'
+  qtasks: ['Tracerho2']
+  seed: 48
+  random_rho_0: False
+  inp_type: '2qubit1'
+
+perf_params:
+  pm: 'Capacity'
+  n_min_delay: 0
+  n_max_delay: 15
+  axis: ['z','x','y'] # Axis to consider for the readout layer for performance (It is IMPORTANT that the order must be ['z', 'x', 'y']!)
+  caxis: ['z','x','y']
+  ccaxis: ['zx', 'xy', 'zy'] # Order 'zx', 'xy', 'zy'
+
+flags:
+  obs: False
+  performance: True
+  load_obs: True 
+  store: True
+  rewrite: False # To recompute observable dynamics (If False, the system will not rewrite the data that has been already computed)
+
+sweeps:
+  h:
+    sweep_param: 'h'
+    start_exp: -2
+    end_exp: 2
+    num: 1
+  W:
+    sweep_param: 'W'
+    start_exp: -2
+    end_exp: 2
+    num: 1    
+
+Qinp_sweep:
+    axis: [['z'],['x'],['y'],['x','y'], ['z','x','y']]
+    caxis: [['z'],['x'],['y'],['x','y'], ['z','x','y']]
+
+# Optimized quantum task parameters
+
+all_qtasks:
+  Tracerho2:
+    qtasks: ['Tracerho2']
+    pm: "NMSE"
+    dt: 100
+    fixed_h: 0.5
+
+  Entropy:
+    qtasks: ['Entropy']
+    pm: "NMSE"
+    dt: 100
+    fixed_h: 0.5
+
+  Sigman:
+    qtasks: ['Sigman']
+    pm: "NMSE"
+    dt: 0.5
+    fixed_h: 3
+
+  Entanglement:
+    qtasks: ['Entanglement']
+    pm: "NMSE"
+    dt: 100
+    fixed_h: 0.5
+
+  Fidelity:
+    qtasks: ['Fidelity']
+    pm: "Fidelity"
+    dt: 0.5
+    fixed_h: 3
