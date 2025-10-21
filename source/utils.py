@@ -3,13 +3,18 @@
 import numpy as np
 from qutip import sigmax, sigmay, sigmaz, qeye, bell_state, ket2dm, tensor, Qobj, basis, expect
 
-def load_observables_data(L, Js, W, h, dt, Vmp, Dmp, N_rep, task_name, it, inp_type='qubit'):
+def load_observables_data(L, Js, W, h, dt, Vmp, Dmp, N_rep, task_name, it, 
+						  inp_type='qubit', back_action=False):
 
 	""" 
 	This function load the obsevable dynamics for a given configuration
 	"""
 
-	path = f"results/data/{task_name}/QRC/{inp_type}/L{L}_Js{Js}_h{h}_W{W}_dt{dt}_V{Vmp}_D{Dmp}_Nrep{N_rep}/Iter_{it}.npz"
+	path = f"results/data/"
+	if back_action:
+		path += "back_action/"
+	
+	path += f"{task_name}/QRC/{inp_type}/L{L}_Js{Js}_h{h}_W{W}_dt{dt}_V{Vmp}_D{Dmp}_Nrep{N_rep}/Iter_{it}.npz"
 	obs = np.load(path, allow_pickle=True)
 
 	return obs

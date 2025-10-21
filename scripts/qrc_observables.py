@@ -13,7 +13,7 @@ params_to_section = {
     "Vmp": "qrc_params",
     "pm": "perf_params",
     "qtasks": "qrc_params",
-    "fixed_h": "qrc_params"
+    "fixed_h": "qrc_params",
 }
 
 def run_config(config, sweep_values=None):
