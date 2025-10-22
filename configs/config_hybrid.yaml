@@ -1,14 +1,17 @@
 # This Yaml file contains the parameters of the different tasks
 
 qrc_params:
-  L: 9
+  L: 2
   Js : 1
   fixed_h: 3
   fixed_W: 0.01
-  dt: 5
+  dt: 0.5
   N_rep: 1
-  Vmp: 10
+  Vmp: 1
   Dmp: 1
+  back_action: True
+  monitor_axis: 'x'
+  meas_strength: 0.2
 
 flags:
   obs: False
@@ -17,18 +20,18 @@ flags:
   load_obs: True
 
 esn_params:
-  N_esn: 180
+  N_esn: 45
   g: 0.25
   l: 0.001
   N_esn_solely: 180
 
 common_params:
   task_name: "Qinp"
-  qtasks: ['Fidelity']
-  N_iter: 100
+  qtasks: ['Tracerho2']
+  N_iter: 1
   seed: 48
   store: True
-  inp_type: '2qubit'
+  inp_type: 'qubit'
 
 perf_params:
   pm: "Fidelity"

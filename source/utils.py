@@ -1,10 +1,11 @@
 """ This file contains utils functions for the different classes """
 
 import numpy as np
-from qutip import sigmax, sigmay, sigmaz, qeye, bell_state, ket2dm, tensor, Qobj, basis, expect
+from qutip import sigmax, sigmay, sigmaz, qeye, bell_state, ket2dm, tensor, Qobj, basis, expect, gates
 
 def load_observables_data(L, Js, W, h, dt, Vmp, Dmp, N_rep, task_name, it, 
-						  inp_type='qubit', back_action=False):
+						  inp_type='qubit', back_action=False, monitor_axis='x',
+						  meas_strength=None):
 
 	""" 
 	This function load the obsevable dynamics for a given configuration
@@ -12,9 +13,14 @@ def load_observables_data(L, Js, W, h, dt, Vmp, Dmp, N_rep, task_name, it,
 
 	path = f"results/data/"
 	if back_action:
-		path += "back_action/"
+		path += f"back_action/{monitor_axis}/"
+		pathend = f"_MeasStr_{meas_strength}"
 	
-	path += f"{task_name}/QRC/{inp_type}/L{L}_Js{Js}_h{h}_W{W}_dt{dt}_V{Vmp}_D{Dmp}_Nrep{N_rep}/Iter_{it}.npz"
+	path += f"{task_name}/QRC/{inp_type}/L{L}_Js{Js}_h{h}_W{W}_dt{dt}_V{Vmp}_D{Dmp}_Nrep{N_rep}"
+	if back_action:
+		path += pathend
+	
+	path += f"/Iter_{it}.npz"
 	obs = np.load(path, allow_pickle=True)
 
 	return obs
@@ -287,11 +293,66 @@ def load_state_data(N_esn, g, l, task_name, it, ax_str='', inp_type='qubit'):
 	return state
 
 def ensure_physical(rho, tol=1e-12):
-    """
-    Returns rho if physical (PSD and trace 1), otherwise None.
-    """
-    evals = rho.eigenenergies()  # cheaper than eigenstates
-    if (np.min(evals) >= -tol) and (abs(rho.tr() - 1.0) < tol):
-        return rho
-    else:
-        return None
+	"""
+	Returns rho if physical (PSD and trace 1), otherwise None.
+	"""
+	evals = rho.eigenenergies()  # cheaper than eigenstates
+	if (np.min(evals) >= -tol) and (abs(rho.tr() - 1.0) < tol):
+		return rho
+	else:
+		return None
+
+def get_M_Had_HS_operators(monitor_axis, meas_strength, L):
+
+	"""
+	Returns the back actions operators (M, Had, HS)
+	"""
+
+	sup = np.exp(-meas_strength**2/2)
+	M_qubit = np.array([[1, sup], [sup, 1]])
+	QM_qubit = Qobj(M_qubit)
+	QM = tensor(QM_qubit for _ in range(L))
+	M = QM.full()
+
+	if monitor_axis in ['x', 'y']:
+		Had_qubit = gates.snot()
+		Had = tensor(Had_qubit for _ in range(L))
+	else:
+		Had = None
+
+	if monitor_axis == 'y':
+		S_qubit = gates.phasegate(np.pi / 2)
+		S = tensor(S_qubit for _ in range(L))
+		HS = Had * S
+	else:
+		HS = None
+
+	return M, Had, HS
+
+
+def monitor_rho_transform(rho, monitor_axis, M, Had=None, HS=None):
+
+	"""
+	Returns densitry matrix under the effect of continious monitoring (back-action) under weak-measurements.
+	The transformation depends on the axis in which the state is monitored. 
+	Arguments:
+	- rho: State after CPTP map (can be either unitary evolution or FN map) (Qobj)
+	- monitor_axis: Direction in which the state is monitored ('x', 'y', 'z') (str)
+	- M: Back-action matrix (array)
+	- Had: Hadamard gate (Qobj)
+	- HS: Hadamard * Phase shift gate (Qobj)
+	"""
+
+	if monitor_axis not in ['z', 'x', 'y']:
+		raise ValueError("Monitor axis must be one of the following strings: 'x', 'y', 'z'.")
+	elif monitor_axis == 'z':
+		rho_ba = Qobj(np.multiply(M,rho.full()), dims=rho.dims)
+	elif monitor_axis == 'x':
+		rho_rotx = Had * rho * Had
+		rho_ba = Had * Qobj(np.multiply(M, rho_rotx.full()), dims=rho.dims) * Had
+	elif monitor_axis == 'y':
+		rho_roty = HS * rho * HS.dag()
+		rho_ba = HS.dag() * Qobj(np.multiply(M, rho_roty.full()), dims=rho.dims) * HS
+
+	return rho_ba
+

@@ -5,7 +5,7 @@ from .tasks import Tasks
 from cycler import cycler
 import pathlib
 import os
-from .utils import load_observables_data, get_obs_idx, ax_to_str
+from .utils import load_observables_data, get_obs_idx, ax_to_str, get_M_Had_HS_operators, monitor_rho_transform
 
 class QuantumReservoirDynamics(Hamiltonian, Tasks):
 
@@ -14,7 +14,8 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
     def __init__(
         self, L, J, h, W, dt=10, sx=None, sy=None, sz=None, correlations_x=None, correlations_y=None, correlations_z=None,
         correlations_xy=None, correlations_zx=None, correlations_zy=None, back_action=False, meas_strength=0, monitor_axis='x',
-        random_rho_0=False, axis=['z','x','y'], caxis=['z','x','y'], ccaxis=['zx', 'xy', 'zy'], Vmp=1, N_rep=1, **kwargs):
+        random_rho_0=False, axis=['z','x','y'], caxis=['z','x','y'], ccaxis=['zx', 'xy', 'zy'], Vmp=1, N_rep=1,
+        M=None, Had=None, HS=None, **kwargs):
 
         """
         Initialize the QuantumReservoirDynamics class.
@@ -66,20 +67,10 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
 
         self.back_action = back_action
         self.monitor_axis = monitor_axis
-        if monitor_axis in ['x','y']:
-            Had_qubit = gates.snot()
-            self.Had = tensor(Had_qubit for _ in range(self.L))
-            if monitor_axis == 'y':
-                S_qubit = gates.phasegate(np.pi/2)
-                self.S = tensor(S_qubit for _ in range(self.L))
-                self.HS = self.Had * self.S
-        
         self.meas_strength = meas_strength
-        sup = np.exp(-meas_strength**2/2)
-        self.M_qubit = np.array([[1, sup], [sup, 1]])
-        self.QM_qubit = Qobj(self.M_qubit)
-        self.QM = tensor(self.QM_qubit for _ in range(self.L))
-        self.M = self.QM.full()
+        self.M = M
+        self.Had = Had
+        self.HS = HS
 
     def __repr__(self):
 
@@ -171,21 +162,13 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
         rhot = self.U @ rho @ self.Udag
 
         if self.back_action:
-            if self.monitor_axis == 'z':
-                rhot = Qobj(np.multiply(self.M, rhot.full()), dims = rhot.dims)
-
-            elif self.monitor_axis == 'x':
-                rho_rotx = self.Had * rhot * self.Had
-                rhot = self.Had * Qobj(np.multiply(self.M, rho_rotx.full()), dims=rhot.dims) * self.Had
-
-            elif self.monitor_axis == 'y':
-                rho_roty = self.HS * rhot * self.HS.dag()
-                rhot = self.HS.dag() * Qobj(np.multiply(self.M, rho_roty.full()), dims=rhot.dims) * self.HS
+            rhot = monitor_rho_transform(rhot, self.monitor_axis, self.M, self.Had, self.HS)
 
         return rhot
     
     @staticmethod
-    def input_update_qubit_RC(U, Udag, rho_0, rho_1, trace_indices, M=False, back_action=False):
+    def input_update_qubit_RC(U, Udag, rho_0, rho_1, trace_indices, M=False, back_action=False, 
+                            monitor_axis='z', Had=None, HS=None):
 
         # Partial trace over the first qubit (remove the first qubit from the system)
         Tr1 = rho_0.ptrace(trace_indices) # Keep the reservoir spins except the first qubit
@@ -193,9 +176,8 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
         rho_up = tensor(rho_1, Tr1)
 
         rho_t = U @ rho_up @ Udag # time evolution of the density matrix
-
         if back_action:
-            rho_t = Qobj(np.multiply(M, rho_t.full()), dims = rho_t.dims)
+            rho_t = monitor_rho_transform(rho_t, monitor_axis, M, Had, HS)
 
         return rho_t
         
@@ -225,7 +207,8 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
 
             for _ in range(self.N_rep):
                 self.rho_0 = self.input_update_qubit_RC(self.U, self.Udag, self.rho_0, self.rho_1[k],
-                                                        self.trace_indices, self.M, self.back_action)
+                                                        self.trace_indices, self.M, self.back_action,
+                                                        self.monitor_axis, self.Had, self.HS)
 
             for i, ax in enumerate(self.axis):
                 self.store_local_obs[i, k, :self.L] = self.average_values(self.rho_0, self.s_ops[ax])
@@ -258,7 +241,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
         seed=None, sx=None, sy=None, sz=None, correlations_x=None, correlations_y=None, correlations_z=None,
         correlations_xy=None, correlations_zx=None, correlations_zy=None,
         max_bound_input=None, axis=['z','x','y'], caxis=['z'], ccaxis=[], Vmp=1, store=True, Dmp=1, N_rep=1, qtasks=[], inp_type='qubit',
-        back_action=False, meas_strength=0, **kwargs):
+        back_action=False, meas_strength=0, monitor_axis='x', M=None, Had=None, HS=None, **kwargs):
 
         """
         Worker function to compute the prediction performance of the reservoir dynamics for a single combination of h, W, and seed.
@@ -280,7 +263,8 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
                 correlations_x=correlations_x, correlations_y=correlations_y, correlations_z=correlations_z,
                 correlations_xy=correlations_xy, correlations_zx=correlations_zx, correlations_zy=correlations_zy,
                 max_bound_input=max_bound_input, axis=axis, caxis=caxis, ccaxis=ccaxis, Vmp=Vmp, n_max_delay=0,
-                inp_type=inp_type, N_rep=N_rep, qtasks=qtasks, meas_strength=meas_strength, **kwargs)
+                inp_type=inp_type, N_rep=N_rep, qtasks=qtasks, back_action=back_action, meas_strength=meas_strength,
+                monitor_axis=monitor_axis, M=M, Had=Had, HS=HS, **kwargs)
             
             res.input_signals = task.input_signals
             res.max_bound_input = task.max_bound_input
@@ -292,7 +276,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
         if store:
             path = 'results/data/'
             if back_action:
-                path += 'back_action/'
+                path += f'back_action/{monitor_axis}/'
                 path1 = f'_MeasStr_{meas_strength}'
             
             path += f'{task_name}/QRC/'
@@ -314,7 +298,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
         dt=10, axis=['z', 'x', 'y'], caxis=['z', 'x', 'y'], ccaxis=['zx', 'xy', 'zy'], Vmp=1,
         max_bound_input=None, seed=None, store=True,
         sweep_param="W", sweep_values=None, fixed_h=None, fixed_W=None, rewrite=False, qtasks=[],
-        Dmp=1, N_rep=1, back_action=False, meas_strength=0, inp_type='qubit', **kwargs):
+        Dmp=1, N_rep=1, back_action=False, meas_strength=0, monitor_axis='x', inp_type='qubit', **kwargs):
         """
         Compute QRC performance over a sweep of W or h, or with both fixed.
 
@@ -333,12 +317,18 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
         rng = np.random.default_rng(seed)
         seeds = rng.integers(0, 1e9, size=(N_iter if sweep_param is None else len(sweep_values) * N_iter))
 
+        if back_action:
+            M, Had, HS = get_M_Had_HS_operators(monitor_axis, meas_strength, L)
+            axis = [monitor_axis]; caxis = [monitor_axis]; ccaxis = [] # Only get observables of the direction in which the system is monitored.
+        else: 
+            M = Had = HS = None
+
         # Helper to compute one config
         def run_for_config(h, W, i_offset=0):
 
             dir_path = 'results/data/'
             if back_action:
-                dir_path += 'back_action/'
+                dir_path += f'back_action/{monitor_axis}/'
 
             if qtasks:
                 dir_path = f'{task_name}/QRC/{inp_type}/L{L}_Js{Js}_h{h}_W{W}_dt{dt}_V{Vmp}_D{Dmp}_Nrep{N_rep}/'
@@ -367,7 +357,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
                 correlations_x, correlations_y, correlations_z,
                 correlations_xy, correlations_zx, correlations_zy,
                 max_bound_input, axis, caxis, ccaxis, Vmp, store, Dmp, N_rep, qtasks,
-                inp_type, back_action, meas_strength)
+                inp_type, back_action, meas_strength, monitor_axis, M, Had, HS)
                 for k, idx_iter in enumerate(missing_k)
             ]
 
@@ -411,7 +401,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
         N_iter=10, task_name="NARMA", n_min_delay=0, n_max_delay=10,
         dt=10, axis=['z'], caxis=[], ccaxis=[], Vmp=1, pm='Capacity', Dmp=1, N_rep=1,
         store=True, sweep_param="W", seed=None, load_obs=False, qtasks=[], inp_type='qubit',
-        back_action=False, meas_strength=0, **kwargs):
+        back_action=False, meas_strength=0, monitor_axis='x', **kwargs):
         
         """
         Compute QRC performance either by sweeping h or W, or by keeping both fixed.
@@ -455,14 +445,16 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
                     L=L, Js=Js, N_iter=N_iter, task_name=task_name, dt=dt, Vmp=Vmp, seed=seed,
                     store=False, sweep_param=sweep_param, fixed_h=fixed_h, fixed_W=fixed_W, 
                     rewrite=True, Dmp=Dmp, N_rep=N_rep, qtasks=qtasks,
-                    back_action=back_action, meas_strength=meas_strength,
+                    back_action=back_action, meas_strength=meas_strength, monitor_axis=monitor_axis,
                     **kwargs)
 
             for it in range(N_iter):
 
                 if load_obs:
 
-                    data = load_observables_data(L, Js, fixed_W, fixed_h, dt, Vmp, Dmp, N_rep, task_name, it, inp_type, back_action)
+                    data = load_observables_data(L, Js, fixed_W, fixed_h, dt, Vmp, Dmp, N_rep,
+                                                task_name, it, inp_type, back_action, monitor_axis,
+                                                meas_strength=meas_strength)
                     inp = data['inp']
                     obs = data['obs']
                 
@@ -472,7 +464,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
                     obs = sample[0]
                     inp = sample[1]
                 
-                task.x_out = obs[:, obs_idx]
+                task.x_out = obs[:, obs_idx] if not back_action else obs
                 task.input_signals = inp
 
                 if task_name == 'Qinp':
@@ -491,7 +483,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
                 
                 path = 'results/data/'
                 if back_action:
-                    path += 'back_action/'
+                    path += f'back_action/{monitor_axis}/'
 
                 path += f'{task_name}/'
                 pathend = f'{pm}_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_h{fixed_h}_W{fixed_W}_dt{dt}_ax_{ax_str}_cax_{cax_str}_sweep_delay'
@@ -550,7 +542,9 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
 
                     if load_obs:
 
-                        data = load_observables_data(L, Js, W, h, dt, Vmp, Dmp, N_rep, task_name, it, inp_type, back_action)
+                        data = load_observables_data(L, Js, W, h, dt, Vmp, Dmp, N_rep, task_name,
+                                                    it, inp_type, back_action, monitor_axis,
+                                                    meas_strength=meas_strength)
                         inp = data['inp']
                         obs = data['obs']
 
@@ -560,7 +554,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
                         obs = sample[0]
                         inp = sample[1]
 
-                    task.x_out = obs[:,obs_idx]
+                    task.x_out = obs[:,obs_idx] if not back_action else obs
                     task.input_signals = inp
 
                     if task_name == 'Qinp':
@@ -586,7 +580,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
 
                 path = 'results/data/'
                 if back_action:
-                    path += 'back_action/'
+                    path += f'back_action/{monitor_axis}/'
 
                 path += f'{task_name}/'
                 pathend = f'{pm}_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_{fixed_str}{fixed_param}_dt{dt}_ax_{ax_str}_cax_{cax_str}_sweep{sweep_param}'

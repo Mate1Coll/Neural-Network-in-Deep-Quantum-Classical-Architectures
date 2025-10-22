@@ -1,23 +1,24 @@
 # This Yaml file contains the parameters for the qrc_observables.py script
 
 qrc_params:
-  L: 2
+  L: 5
   Js: 1
-  dt: 0.5
+  dt: 5
   fixed_h: 3
   fixed_W: 0.01
   sweep_param: null # None
-  Vmp: 1
+  Vmp: 10
   Dmp: 1
   N_rep: 1
-  N_iter: 1
+  N_iter: 100
   task_name: 'Qinp'
   qtasks: ['Tracerho2']
   seed: 48
   random_rho_0: False
   inp_type: 'qubit'
   back_action: True
-  meas_strength: 0.2
+  meas_strength: 0
+  monitor_axis: 'x'
 
 perf_params:
   pm: 'Capacity'
@@ -32,7 +33,7 @@ flags:
   performance: False
   load_obs: False 
   store: True
-  rewrite: False # To recompute observable dynamics (If False, the system will not rewrite the data that has been already computed)
+  rewrite: True # To recompute observable dynamics (If False, the system will not rewrite the data that has been already computed)
 
 sweeps:
   h:

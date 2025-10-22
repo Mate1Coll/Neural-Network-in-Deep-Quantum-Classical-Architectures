@@ -48,7 +48,8 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 		L, Js, h, W, dt, N_esn, g, l, Vmp=1, Dmp=1, task_name='Qinp', N_iter=1, seed=None,
 		load_obs = False, axis=['z'], caxis=['z'], ccaxis=[], n_min_delay = 0, n_max_delay= 10, ratio_delay_qrc=0.5,
 		pm = 'NMSE', store=True, N_rep=1, qtasks=[], onlyesn=False, N_esn_solely=25,
-		esn_axis=['z'], esn_caxis=['z'], all_info=False, qrc_prep_perf=False, inp_type='qubit', **kwargs):
+		all_info=False, qrc_prep_perf=False, inp_type='qubit',
+		back_action=False, monitor_axis='x', meas_strength=0.2, **kwargs):
 
 		""" This function computes the performance of the serie hybrid configuration.
 		In this case input signal is preprocessed via QRC by performing lienar regression for a time delay QRC smaller than the origianl target.
@@ -62,6 +63,9 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 
 		if ratio_delay_qrc < 0 or ratio_delay_qrc > 1:
 			raise ValueError("ratio_qrc_delay must be within 0 and 1")
+		
+		if back_action:
+			axis = [monitor_axis]; caxis = [monitor_axis]
 
 		delays = list(range(n_min_delay, n_max_delay))
 		task_qrc = Tasks(n_max_delay=0, task_name=task_name, pm=pm, qtasks=qtasks, seed=seed, inp_type=inp_type)
@@ -86,7 +90,9 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 			data = QuantumReservoirDynamics.qrc_obs(
 					L=L, Js=Js, N_iter=N_iter, task_name=task_name, dt=dt, Vmp=Vmp, seed=seed,
 					store=True, sweep_param=None, fixed_h=h, fixed_W=W, 
-					rewrite=True, Dmp=Dmp, N_rep=N_rep, qtasks=qtasks)
+					rewrite=True, Dmp=Dmp, N_rep=N_rep, qtasks=qtasks,
+					back_action=back_action, monitor_axis=monitor_axis,
+					meas_strength=meas_strength, inp_type=inp_type)
 			
 		rng = np.random.default_rng(seed=seed)
 		seeds = rng.integers(1, 1e9, size=(N_iter))
@@ -101,11 +107,12 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 				
 			else:
 
-				data = load_observables_data(L, Js, W, h, dt, Vmp, Dmp, N_rep, task_name, it, inp_type=inp_type)
+				data = load_observables_data(L, Js, W, h, dt, Vmp, Dmp, N_rep, task_name, it, inp_type=inp_type,
+								 back_action=back_action, monitor_axis=monitor_axis, meas_strength=meas_strength)
 				inp = data['inp']
 				obs = data['obs']
 				
-			task_qrc.x_out = obs[:, obs_idx]
+			task_qrc.x_out = obs[:, obs_idx] if not back_action else obs
 			task_qrc.input_signals = inp
 			task_hyb.input_signals = inp
 			task_qrc.reset_quantum_input_features()
@@ -179,8 +186,18 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 			q_task_dict['C_std '+q_task] = C_std[i]
 
 		if store:
-			fname = f'results/data/{task_name}/{strqtasks}/HYB/{inp_type}/{pm}_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_h{h}_W{W}_dt{dt}_ax_{ax_str}_cax_{cax_str}_Nesn{N_esn}_g{g}_l{l}_delayqrc{ratio_delay_qrc}_sweep_delay'
-			pathlib.Path(f'results/data/{task_name}/{strqtasks}/HYB/{inp_type}/').mkdir(parents=True, exist_ok=True)
+			fname = 'results/data/'
+			if back_action:
+				fname += f'back_action/{monitor_axis}/'
+				fend = f'_MeasStr{meas_strength}'
+
+			fname += f'{task_name}/{strqtasks}/HYB/{inp_type}/'
+			pathlib.Path(fname).mkdir(parents=True, exist_ok=True)
+			fname += f'{pm}_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_h{h}_W{W}_dt{dt}_ax_{ax_str}_cax_{cax_str}_Nesn{N_esn}_g{g}_l{l}_delayqrc{ratio_delay_qrc}_sweep_delay'
+
+			if back_action:
+				fname += fend
+
 			np.savez_compressed(fname, delays=delays, **q_task_dict)
 
 		if qrc_prep_perf:
@@ -194,8 +211,18 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 				prep_dict['C_std '+a] = C_prep_std[i]
 
 			if store:
-				fprepname = f'results/data/{task_name}/QPreprocess/{inp_type}/Capacity_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_h{h}_W{W}_dt{dt}_ax_{ax_str}_sweep_delay'
-				pathlib.Path(f'results/data/{task_name}/QPreprocess/{inp_type}/').mkdir(parents=True, exist_ok=True)
+				fprepname = 'results/data/'
+				if back_action:
+					fprepname += f'back_action/{monitor_axis}/'
+					fprepend = f'_MeasStr{meas_strength}'
+
+				fprepname += f'{task_name}/QPreprocess/{inp_type}/'
+				pathlib.Path(fprepname).mkdir(parents=True, exist_ok=True)
+				fprepname += f'Capacity_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_h{h}_W{W}_dt{dt}_ax_{ax_str}_sweep_delay'
+
+				if back_action:
+					fprepname += fprepend
+
 				np.savez_compressed(fprepname, delays=delays, **prep_dict)
 
 		if onlyesn:
