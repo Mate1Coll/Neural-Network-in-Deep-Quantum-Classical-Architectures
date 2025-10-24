@@ -4,7 +4,7 @@ from .quantum_reservoir import QuantumReservoirDynamics, load_observables_data, 
 from .esn import Esn, EsnDynamics
 from .tasks import linear_model, Tasks
 from .hamiltonian import Hamiltonian
-from .utils import load_readout_layer, np, ax_to_str, input_full_esn
+from .utils import load_readout_layer, np, ax_to_str, input_full_esn, statistical_noise
 import matplotlib.pyplot as plt
 
 class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
@@ -49,7 +49,8 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 		load_obs = False, axis=['z'], caxis=['z'], ccaxis=[], n_min_delay = 0, n_max_delay= 10, ratio_delay_qrc=0.5,
 		pm = 'NMSE', store=True, N_rep=1, qtasks=[], onlyesn=False, N_esn_solely=25,
 		all_info=False, qrc_prep_perf=False, inp_type='qubit',
-		back_action=False, monitor_axis='x', meas_strength=0.2, **kwargs):
+		back_action=False, monitor_axis='x', meas_strength=0.2,
+		noise=False, N_meas=1e5, **kwargs):
 
 		""" This function computes the performance of the serie hybrid configuration.
 		In this case input signal is preprocessed via QRC by performing lienar regression for a time delay QRC smaller than the origianl target.
@@ -111,7 +112,10 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 								 back_action=back_action, monitor_axis=monitor_axis, meas_strength=meas_strength)
 				inp = data['inp']
 				obs = data['obs']
-				
+			
+			if noise:
+				obs = statistical_noise(obs.copy(), N_meas, meas_strength, L, Vmp, back_action)
+
 			task_qrc.x_out = obs[:, obs_idx] if not back_action else obs
 			task_qrc.input_signals = inp
 			task_hyb.input_signals = inp
@@ -192,6 +196,7 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 				fend = f'_MeasStr{meas_strength}'
 
 			fname += f'{task_name}/{strqtasks}/HYB/{inp_type}/'
+			fname += f'Nmeas{N_meas}/' if noise else 'N_measInf/'
 			pathlib.Path(fname).mkdir(parents=True, exist_ok=True)
 			fname += f'{pm}_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_h{h}_W{W}_dt{dt}_ax_{ax_str}_cax_{cax_str}_Nesn{N_esn}_g{g}_l{l}_delayqrc{ratio_delay_qrc}_sweep_delay'
 
@@ -217,6 +222,7 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 					fprepend = f'_MeasStr{meas_strength}'
 
 				fprepname += f'{task_name}/QPreprocess/{inp_type}/'
+				fprepname += f'N_meas{N_meas}/' if noise else 'N_measInf/'
 				pathlib.Path(fprepname).mkdir(parents=True, exist_ok=True)
 				fprepname += f'Capacity_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_h{h}_W{W}_dt{dt}_ax_{ax_str}_sweep_delay'
 

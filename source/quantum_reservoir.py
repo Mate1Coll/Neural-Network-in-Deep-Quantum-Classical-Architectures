@@ -5,7 +5,7 @@ from .tasks import Tasks
 from cycler import cycler
 import pathlib
 import os
-from .utils import load_observables_data, get_obs_idx, ax_to_str, get_M_Had_HS_operators, monitor_rho_transform
+from .utils import load_observables_data, get_obs_idx, ax_to_str, get_M_Had_HS_operators, monitor_rho_transform, statistical_noise
 
 class QuantumReservoirDynamics(Hamiltonian, Tasks):
 
@@ -329,11 +329,14 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
             dir_path = 'results/data/'
             if back_action:
                 dir_path += f'back_action/{monitor_axis}/'
+                end_dir_path = f'_MeasStr_{meas_strength}/'
 
             if qtasks:
-                dir_path = f'{task_name}/QRC/{inp_type}/L{L}_Js{Js}_h{h}_W{W}_dt{dt}_V{Vmp}_D{Dmp}_Nrep{N_rep}/'
+                dir_path += f'{task_name}/QRC/{inp_type}/L{L}_Js{Js}_h{h}_W{W}_dt{dt}_V{Vmp}_D{Dmp}_Nrep{N_rep}'
             else:
-                dir_path = f'{task_name}/QRC/L{L}_Js{Js}_h{h}_W{W}_dt{dt}_V{Vmp}_D{Dmp}_Nrep{N_rep}/'
+                dir_path += f'{task_name}/QRC/L{L}_Js{Js}_h{h}_W{W}_dt{dt}_V{Vmp}_D{Dmp}_Nrep{N_rep}'
+
+            dir_path += end_dir_path if back_action else '/'
 
             missing_k = []
 
@@ -401,7 +404,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
         N_iter=10, task_name="NARMA", n_min_delay=0, n_max_delay=10,
         dt=10, axis=['z'], caxis=[], ccaxis=[], Vmp=1, pm='Capacity', Dmp=1, N_rep=1,
         store=True, sweep_param="W", seed=None, load_obs=False, qtasks=[], inp_type='qubit',
-        back_action=False, meas_strength=0, monitor_axis='x', **kwargs):
+        back_action=False, meas_strength=0, monitor_axis='x', noise = True, N_meas=10000, **kwargs):
         
         """
         Compute QRC performance either by sweeping h or W, or by keeping both fixed.
@@ -463,6 +466,9 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
                     sample = data[it]
                     obs = sample[0]
                     inp = sample[1]
+
+                if noise:
+                    obs = statistical_noise(obs.copy(), N_meas, meas_strength, L, Vmp, back_action)
                 
                 task.x_out = obs[:, obs_idx] if not back_action else obs
                 task.input_signals = inp
@@ -484,10 +490,13 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
                 path = 'results/data/'
                 if back_action:
                     path += f'back_action/{monitor_axis}/'
+                    path_ms = f'_MeasStr_{meas_strength}'
+
+                path += f'Nmeas{N_meas}/' if noise else 'N_measInf/'
 
                 path += f'{task_name}/'
                 pathend = f'{pm}_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_h{fixed_h}_W{fixed_W}_dt{dt}_ax_{ax_str}_cax_{cax_str}_sweep_delay'
-                
+                pathend += path_ms if back_action else ''
                 
                 if task_name == 'Qinp':
                     path += f'{strqtasks}/QRC/{inp_type}/'
@@ -554,6 +563,9 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
                         obs = sample[0]
                         inp = sample[1]
 
+                    if noise:
+                        obs = statistical_noise(obs.copy(), N_meas, meas_strength, L, Vmp, back_action)
+
                     task.x_out = obs[:,obs_idx] if not back_action else obs
                     task.input_signals = inp
 
@@ -581,10 +593,14 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
                 path = 'results/data/'
                 if back_action:
                     path += f'back_action/{monitor_axis}/'
+                    path_ms = f'_MeasStr_{meas_strength}'
+
+                path += f'N_meas{N_meas}/' if noise else 'N_measInf/'
 
                 path += f'{task_name}/'
                 pathend = f'{pm}_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_{fixed_str}{fixed_param}_dt{dt}_ax_{ax_str}_cax_{cax_str}_sweep{sweep_param}'
-                
+                pathend += path_ms if back_action else ''
+
                 if task_name == 'Qinp':
                     path += f'{strqtasks}/QRC/{inp_type}/'
                     pathlib.Path(path).mkdir(parents=True, exist_ok=True)

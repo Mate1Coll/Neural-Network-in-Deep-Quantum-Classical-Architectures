@@ -27,6 +27,8 @@ perf_params:
   axis: ['z','x','y'] # Axis to consider for the readout layer for performance (It is IMPORTANT that the order must be ['z', 'x', 'y']!)
   caxis: ['z','x','y']
   ccaxis: [] # Order 'zx', 'xy', 'zy'
+  noise: False
+  N_meas: 1e5
 
 flags:
   obs: True

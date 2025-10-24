@@ -356,3 +356,43 @@ def monitor_rho_transform(rho, monitor_axis, M, Had=None, HS=None):
 
 	return rho_ba
 
+def statistical_noise(obs, N_meas, meas_strength, L, V, back_action):
+
+	"""	Add statistical noise to the ideal (infinite ensemble and no back-action) value of the observables	
+	Arguments:
+	- obs: Measured observables (ndarray--dimensions [time steps, number of obs] )
+	- N_meas: Number of experimental measurements.
+	- meas_strength: value of strength back-action.
+	- L: number of qubits
+	"""
+
+	T = obs.shape[0]
+	noisy_obs = obs.copy()
+	LV = L*V
+
+	if not meas_strength:
+		raise ValueError("Error diverges to infinite, choose a nonzero g value")
+
+	if back_action:
+
+		g4 = meas_strength ** 4
+		g2 = meas_strength ** 2
+
+		one_obs_noise = np.sqrt((g2 + 1)/(g2 * N_meas))
+		two_corr_noise = np.sqrt((g4 + 2*g2 + 1)/(g4 * N_meas))
+
+		print('local_noise ', one_obs_noise)
+		print('corr_noise ', two_corr_noise)		
+
+		noisy_obs[:, :LV] += np.random.normal(0, one_obs_noise, size=(T, LV))
+		noisy_obs[:, LV:] += np.random.normal(0, two_corr_noise, size=(T, obs.shape[1]-LV))
+
+	else:
+
+		all_obs_noise = 1/np.sqrt(N_meas)
+		noisy_obs += np.random.normal(0, all_obs_noise, size=obs.shape)
+
+	print('local ', obs[2000:2003,0], noisy_obs[2000:2003,0])
+	print('corr ', obs[2000:2003,91], noisy_obs[2000:2003,91])
+
+	return noisy_obs
