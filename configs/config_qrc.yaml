@@ -7,17 +7,17 @@ qrc_params:
   fixed_h: 3
   fixed_W: 0.01
   sweep_param: null # None
-  Vmp: 10
+  Vmp: 1
   Dmp: 1
   N_rep: 1
-  N_iter: 100
+  N_iter: 1
   task_name: 'Qinp'
   qtasks: ['Tracerho2']
   seed: 48
   random_rho_0: False
   inp_type: 'qubit'
   back_action: True
-  meas_strength: 0
+  meas_strength: 1000
   monitor_axis: 'x'
 
 perf_params:

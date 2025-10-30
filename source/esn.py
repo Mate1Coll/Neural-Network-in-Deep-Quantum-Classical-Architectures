@@ -74,8 +74,8 @@ class Esn(BaseSeededClass):
             self.af = np.tanh
 
         if self.func == 'sigmoid':
-            self.af = lambda x: 1 / (1+ np.exp(-x))
-
+            self.af = lambda x: 1 / (1 + np.exp(-np.clip(x, -500, 500)))
+            
         return
     
 

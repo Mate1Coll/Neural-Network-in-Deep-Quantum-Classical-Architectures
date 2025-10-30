@@ -114,7 +114,7 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 				obs = data['obs']
 			
 			if noise:
-				obs = statistical_noise(obs.copy(), N_meas, meas_strength, L, Vmp, back_action)
+				obs = statistical_noise(obs.copy(), N_meas, meas_strength, L, Vmp, back_action, seeds[it])
 
 			task_qrc.x_out = obs[:, obs_idx] if not back_action else obs
 			task_qrc.input_signals = inp
@@ -196,7 +196,7 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 				fend = f'_MeasStr{meas_strength}'
 
 			fname += f'{task_name}/{strqtasks}/HYB/{inp_type}/'
-			fname += f'Nmeas{N_meas}/' if noise else 'N_measInf/'
+			fname += f'N_meas{N_meas}/' if noise else 'N_measInf/'
 			pathlib.Path(fname).mkdir(parents=True, exist_ok=True)
 			fname += f'{pm}_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_h{h}_W{W}_dt{dt}_ax_{ax_str}_cax_{cax_str}_Nesn{N_esn}_g{g}_l{l}_delayqrc{ratio_delay_qrc}_sweep_delay'
 

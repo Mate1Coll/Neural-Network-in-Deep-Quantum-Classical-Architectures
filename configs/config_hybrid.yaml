@@ -11,7 +11,7 @@ qrc_params:
   Dmp: 1
   back_action: True
   monitor_axis: 'x'
-  meas_strength: 0.1
+  meas_strength: 1
 
 flags:
   obs: False
@@ -20,7 +20,7 @@ flags:
   load_obs: True
 
 esn_params:
-  N_esn: 45
+  N_esn: 270
   g: 0.25
   l: 0.001
   N_esn_solely: 180
@@ -37,14 +37,14 @@ perf_params:
   pm: "Fidelity"
   n_min_delay: 0
   n_max_delay: 15
-  ratio_delay_qrc: 0.5
+  ratio_delay_qrc: 0.0
   axis: ['x']
   caxis: ['x']
   ccaxis: []
   onlyesn: False
-  qrc_prep_perf: True
+  qrc_prep_perf: False
   noise: True
-  N_meas: 1000000
+  N_meas: 10000
 
 # Particular tasks
 

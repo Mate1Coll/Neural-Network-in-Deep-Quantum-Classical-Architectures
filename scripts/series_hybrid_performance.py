@@ -19,7 +19,8 @@ params_to_section = {
     "caxis": "perf_params",
     "ratio_delay_qrc": "perf_params",
     "pm": "perf_params",
-    "qtasks": "common_params"
+    "qtasks": "common_params",
+    "N_meas": "perf_params"
 }
 
 def run_config(config):
@@ -107,6 +108,9 @@ if __name__ == "__main__":
     parser.add_argument("-ax", "--axis", type=str, default=None, choices=['z','x','y','xy','zxy'],
                         help= 'Overwrites combination of parameters of a given axis (iterable slurm).')
     
+    parser.add_argument("-Nm", "--N-meas", type=int, default=None,
+                        help=" Overwrites the value of N_meas.")
+    
     args = parser.parse_args() # Runs the parser and places the extracted data
 
     if not args.dry_run:
@@ -175,6 +179,13 @@ if __name__ == "__main__":
                 local_config["perf_params"]["axis"] = dict_slurm["axis"]
                 local_config["perf_params"]["caxis"] = dict_slurm["axis"]
                 local_config["esn_params"]["N_esn_solely"] = dict_slurm["N_esn_solely"]
+                print_config(local_config)
+                run_config(copy.deepcopy(local_config))
+                printed = True
+            
+            if args.N_meas:
+                print(args.N_meas)
+                local_config["perf_params"]["N_meas"] = int(args.N_meas)
                 print_config(local_config)
                 run_config(copy.deepcopy(local_config))
                 printed = True

@@ -323,14 +323,14 @@ def get_M_Had_HS_operators(monitor_axis, meas_strength, L):
 	if monitor_axis == 'y':
 		S_qubit = gates.phasegate(np.pi / 2)
 		S = tensor(S_qubit for _ in range(L))
-		HS = Had * S
+		Ry = Had * S.dag()
 	else:
-		HS = None
+		Ry = None
 
-	return M, Had, HS
+	return M, Had, Ry
 
 
-def monitor_rho_transform(rho, monitor_axis, M, Had=None, HS=None):
+def monitor_rho_transform(rho, monitor_axis, M, Had=None, Ry=None):
 
 	"""
 	Returns densitry matrix under the effect of continious monitoring (back-action) under weak-measurements.
@@ -340,7 +340,7 @@ def monitor_rho_transform(rho, monitor_axis, M, Had=None, HS=None):
 	- monitor_axis: Direction in which the state is monitored ('x', 'y', 'z') (str)
 	- M: Back-action matrix (array)
 	- Had: Hadamard gate (Qobj)
-	- HS: Hadamard * Phase shift gate (Qobj)
+	- Ry: Hadamard * Phase shift.dag() gate (Qobj)
 	"""
 
 	if monitor_axis not in ['z', 'x', 'y']:
@@ -351,12 +351,12 @@ def monitor_rho_transform(rho, monitor_axis, M, Had=None, HS=None):
 		rho_rotx = Had * rho * Had
 		rho_ba = Had * Qobj(np.multiply(M, rho_rotx.full()), dims=rho.dims) * Had
 	elif monitor_axis == 'y':
-		rho_roty = HS * rho * HS.dag()
-		rho_ba = HS.dag() * Qobj(np.multiply(M, rho_roty.full()), dims=rho.dims) * HS
+		rho_roty = Ry * rho * Ry.dag()
+		rho_ba = Ry.dag() * Qobj(np.multiply(M, rho_roty.full()), dims=rho.dims) * Ry
 
 	return rho_ba
 
-def statistical_noise(obs, N_meas, meas_strength, L, V, back_action):
+def statistical_noise(obs, N_meas, meas_strength, L, V, back_action, seed = 34):
 
 	"""	Add statistical noise to the ideal (infinite ensemble and no back-action) value of the observables	
 	Arguments:
@@ -370,6 +370,8 @@ def statistical_noise(obs, N_meas, meas_strength, L, V, back_action):
 	noisy_obs = obs.copy()
 	LV = L*V
 
+	rng = np.random.default_rng(seed)
+
 	if not meas_strength:
 		raise ValueError("Error diverges to infinite, choose a nonzero g value")
 
@@ -381,18 +383,19 @@ def statistical_noise(obs, N_meas, meas_strength, L, V, back_action):
 		one_obs_noise = np.sqrt((g2 + 1)/(g2 * N_meas))
 		two_corr_noise = np.sqrt((g4 + 2*g2 + 1)/(g4 * N_meas))
 
-		print('local_noise ', one_obs_noise)
-		print('corr_noise ', two_corr_noise)		
+		# print('local_noise ', one_obs_noise)
+		# print('corr_noise ', two_corr_noise)
+		# print(noisy_obs.shape, LV)
 
-		noisy_obs[:, :LV] += np.random.normal(0, one_obs_noise, size=(T, LV))
-		noisy_obs[:, LV:] += np.random.normal(0, two_corr_noise, size=(T, obs.shape[1]-LV))
+		noisy_obs[:, :LV] += rng.normal(0, one_obs_noise, size=(T, LV))
+		noisy_obs[:, LV:] += rng.normal(0, two_corr_noise, size=(T, obs.shape[1]-LV))
 
 	else:
 
 		all_obs_noise = 1/np.sqrt(N_meas)
-		noisy_obs += np.random.normal(0, all_obs_noise, size=obs.shape)
+		noisy_obs += rng.normal(0, all_obs_noise, size=obs.shape)
 
-	print('local ', obs[2000:2003,0], noisy_obs[2000:2003,0])
-	print('corr ', obs[2000:2003,91], noisy_obs[2000:2003,91])
+	# print('local ', obs[2000:2003,0], noisy_obs[2000:2003,0])
+	# print('corr ', obs[2000:2003,91], noisy_obs[2000:2003,91])
 
 	return noisy_obs
