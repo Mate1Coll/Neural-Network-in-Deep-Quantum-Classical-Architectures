@@ -3,11 +3,11 @@
 qrc_params:
   L: 5
   Js: 1
-  dt: 5
-  fixed_h: 3
-  fixed_W: 0.01
+  dt: 10
+  fixed_h: 10
+  fixed_W: 0
   sweep_param: null # None
-  Vmp: 1
+  Vmp: 50
   Dmp: 1
   N_rep: 1
   N_iter: 1
@@ -16,8 +16,8 @@ qrc_params:
   seed: 48
   random_rho_0: False
   inp_type: 'qubit'
-  back_action: True
-  meas_strength: 1000
+  back_action: False
+  meas_strength: 10
   monitor_axis: 'x'
 
 perf_params:

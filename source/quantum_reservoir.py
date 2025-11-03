@@ -202,6 +202,8 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
 			self.sk_array =  reescale * input_signal
 			self.input_state() # generate the input states
 
+		# print(self.axis, self.s_ops)
+
 		for k in range(self.n_steps):
 
 			for _ in range(self.N_rep):

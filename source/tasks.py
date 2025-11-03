@@ -453,8 +453,8 @@ class Tasks(BaseSeededClass):
                     print(i, f, new_rho[i].eigenenergies())
                     j+=1
 
-            print(np.max(C))
-            print(len(F_list))
+            # print(np.max(C))
+            # print(len(F_list))
 
         elif self.pm == 'FidelityPurity':
 
