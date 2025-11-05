@@ -1,13 +1,13 @@
 # This Yaml file contains the parameters for the qrc_observables.py script
 
 qrc_params:
-  L: 5
+  L: 2
   Js: 1
-  dt: 10
-  fixed_h: 10
-  fixed_W: 0
+  dt: 5
+  fixed_h: 3
+  fixed_W: 0.01
   sweep_param: null # None
-  Vmp: 50
+  Vmp: 10
   Dmp: 1
   N_rep: 1
   N_iter: 1
@@ -16,8 +16,8 @@ qrc_params:
   seed: 48
   random_rho_0: False
   inp_type: 'qubit'
-  back_action: False
-  meas_strength: 10
+  back_action: True
+  meas_strength: 0.1
   monitor_axis: 'x'
 
 perf_params:
@@ -34,7 +34,7 @@ flags:
   obs: True
   performance: False
   load_obs: False 
-  store: True
+  store: False
   rewrite: True # To recompute observable dynamics (If False, the system will not rewrite the data that has been already computed)
 
 sweeps:

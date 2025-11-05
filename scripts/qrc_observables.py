@@ -5,6 +5,7 @@ import sys
 import yaml
 import argparse
 import copy
+from source.utils import int_or_float
 
 params_to_section = {
     "L": "qrc_params",
@@ -63,6 +64,8 @@ def print_config(config):
 
 if __name__ == "__main__":
 
+    printed = None
+
     # Open data from yaml file
     with open('configs/config_qrc.yaml', 'r') as f:
         config = yaml.safe_load(f)
@@ -89,6 +92,8 @@ if __name__ == "__main__":
                         help=" Overwrites the value of dt only if there is sweep.")
     parser.add_argument("-ax", "--axis", type=str, default=None, choices=['z','x','y','xy','zxy'],
                         help= 'Overwrites combination of parameters of a given axis (iterable slurm).')
+    parser.add_argument("-ms", "--meas-str", type=int_or_float, default=None,
+                        help= 'Overwrites measurement strength')
     
     args = parser.parse_args() # Runs the parser and places the extracted data
 
@@ -154,6 +159,7 @@ if __name__ == "__main__":
                         print_config(local_config)
                         run_config(copy.deepcopy(local_config))
 
+                    printed = True
 
                 if args.axis:
 
@@ -161,8 +167,19 @@ if __name__ == "__main__":
                     local_config["perf_params"]["caxis"] = [ax for ax in args.axis]
                     print_config(local_config)
                     run_config(copy.deepcopy(local_config))
+                    printed = True
 
-                else:
+                if args.meas_str and args.Vmp:
+                    
+                    print('Meas_str: ', args.meas_str)
+                    local_config["qrc_params"]["meas_strength"] = args.meas_str
+                    print('Virtual nodes: ', args.Vmp)
+                    local_config["qrc_params"]["Vmp"] = args.Vmp
+                    print_config(local_config)
+                    run_config(copy.deepcopy(local_config))
+                    printed = True                
+
+                if not printed:
 
                     print("Running with default configuration (optimized parameters for quantum task)")
                     print_config(local_config)

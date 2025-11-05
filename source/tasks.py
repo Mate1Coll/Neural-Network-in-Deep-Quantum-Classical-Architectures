@@ -447,11 +447,11 @@ class Tasks(BaseSeededClass):
             # Step 5: Average
             C = np.mean(F_list)
             
-            j=0
-            for i,f in enumerate(F_list):
-                if f>1:
-                    print(i, f, new_rho[i].eigenenergies())
-                    j+=1
+            # j=0
+            # for i,f in enumerate(F_list):
+            #     if f>1:
+            #         print(i, f, new_rho[i].eigenenergies())
+            #         j+=1
 
             # print(np.max(C))
             # print(len(F_list))

@@ -3,6 +3,12 @@
 import numpy as np
 from qutip import sigmax, sigmay, sigmaz, qeye, bell_state, ket2dm, tensor, Qobj, basis, expect, gates
 
+def int_or_float(value):
+    try:
+        return int(value)
+    except ValueError:
+        return float(value)
+
 def load_observables_data(L, Js, W, h, dt, Vmp, Dmp, N_rep, task_name, it, 
 						  inp_type='qubit', back_action=False, monitor_axis='x',
 						  meas_strength=None):
