@@ -90,8 +90,8 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 
 			data = QuantumReservoirDynamics.qrc_obs(
 					L=L, Js=Js, N_iter=N_iter, task_name=task_name, dt=dt, Vmp=Vmp, seed=seed,
-					store=True, sweep_param=None, fixed_h=h, fixed_W=W, 
-					rewrite=True, Dmp=Dmp, N_rep=N_rep, qtasks=qtasks,
+					store=False, sweep_param=None, fixed_h=h, fixed_W=W, 
+					rewrite=False, Dmp=Dmp, N_rep=N_rep, qtasks=qtasks,
 					back_action=back_action, monitor_axis=monitor_axis,
 					meas_strength=meas_strength, inp_type=inp_type)
 			

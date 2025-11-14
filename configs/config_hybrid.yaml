@@ -9,7 +9,7 @@ qrc_params:
   N_rep: 1
   Vmp: 10
   Dmp: 1
-  back_action: True
+  back_action: False
   monitor_axis: 'x'
   meas_strength: 10
 
@@ -36,7 +36,7 @@ common_params:
 perf_params:
   pm: "Fidelity"
   n_min_delay: 0
-  n_max_delay: 10
+  n_max_delay: 15
   ratio_delay_qrc: 0.0
   axis: ['x']
   caxis: ['x']
@@ -86,7 +86,7 @@ all_qtasks:
     pm: "NMSE"
     g: 0.25
     l: 0.001
-    ratio_delay_qrc: 1.0
+    ratio_delay_qrc: 0.5
 
   Entropy:
     qtasks: ['Entropy']

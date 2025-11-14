@@ -8,6 +8,7 @@ import yaml
 from itertools import product
 import argparse
 import copy
+from source.utils import int_or_float
 
 params_to_section = {
     "L": "qrc_params",
@@ -111,6 +112,12 @@ if __name__ == "__main__":
     parser.add_argument("-Nm", "--N-meas", type=int, default=None,
                         help=" Overwrites the value of N_meas.")
     
+    parser.add_argument("-ms", "--meas-str", type=int_or_float, default=None,
+                        help= 'Overwrites measurement strength')
+    
+    parser.add_argument("-Vmp", "--Vmp", type=int, default=None,
+                        help=" Overwrites the value of Vmp.")
+    
     args = parser.parse_args() # Runs the parser and places the extracted data
 
     if not args.dry_run:
@@ -160,40 +167,40 @@ if __name__ == "__main__":
                 
                 print(args.ratio_qrc_delay)
                 local_config["perf_params"]["ratio_delay_qrc"] = float(args.ratio_qrc_delay)
-                print_config(local_config)
-                run_config(copy.deepcopy(local_config))
                 printed = True
 
             if args.N_esn and args.L:
-
                 local_config["esn_params"]["N_esn"] = args.N_esn
                 local_config["qrc_params"]["L"] = args.L
-                print_config(local_config)
-                run_config(copy.deepcopy(local_config))
                 printed = True
 
-
             if args.axis:
-
                 dict_slurm = local_config["sweepslurm"][args.axis]
                 local_config["perf_params"]["axis"] = dict_slurm["axis"]
                 local_config["perf_params"]["caxis"] = dict_slurm["axis"]
                 local_config["esn_params"]["N_esn_solely"] = dict_slurm["N_esn_solely"]
-                print_config(local_config)
-                run_config(copy.deepcopy(local_config))
                 printed = True
             
             if args.N_meas:
-                print(args.N_meas)
+                print('N_meas: ', args.N_meas)
                 local_config["perf_params"]["N_meas"] = int(args.N_meas)
-                print_config(local_config)
-                run_config(copy.deepcopy(local_config))
+                printed = True
+
+            if args.meas_str:
+                print('Meas_str: ', args.meas_str)
+                local_config["qrc_params"]["meas_strength"] = args.meas_str
+                printed = True  
+            
+            if args.Vmp:
+                print('Virtual nodes: ', args.Vmp)
+                local_config["qrc_params"]["Vmp"] = args.Vmp
                 printed = True
 
             if not printed:
                 print("Running with default configuration (optimized parameters for quantum task)")
-                print_config(local_config)
-                run_config(copy.deepcopy(local_config))
+
+            print_config(local_config)
+            run_config(copy.deepcopy(local_config))
 
     else:
 

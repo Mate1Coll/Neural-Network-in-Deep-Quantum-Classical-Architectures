@@ -76,7 +76,7 @@ if __name__ == "__main__":
                         help= 'Determines which type of parameter sweeping we apply. \n' 
                         '- h: sweep h and fix W. \n' 
                         '- W: sweep W and fix h. \n') 
-    parser.add_argument("-qt" , "--qtasks", type=str, nargs='+', default=['Tracerho2', 'Entropy', 'Sigman', 'Entanglement', 'Fidelity'],
+    parser.add_argument("-qt" , "--qtasks", type=str, nargs='+', default=['Tracerho2', 'Entropy', 'Sigman', 'Entanglement', 'Fidelity', 'default'],
                         help='Determine which quantum tasks to consider. \n'
                         'If none, considers all the tasks \n '
                         'Example: -qt Tracerho2 Entropy')
@@ -139,9 +139,10 @@ if __name__ == "__main__":
 
                 local_config = copy.deepcopy(config)
                 print(qtasks)
-                for k, v in local_config["all_qtasks"][qtasks].items():
-                    section = params_to_section.get(k)
-                    local_config[section][k] = v
+                if qtasks != 'default':
+                    for k, v in local_config["all_qtasks"][qtasks].items():
+                        section = params_to_section.get(k)
+                        local_config[section][k] = v
 
                 if args.qinpsweep:
                     sweep_dict = local_config["sweeps"][f'sweep{args.sweep}']

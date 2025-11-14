@@ -452,7 +452,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
 				data = QuantumReservoirDynamics.qrc_obs(
 					L=L, Js=Js, N_iter=N_iter, task_name=task_name, dt=dt, Vmp=Vmp, seed=seed,
 					store=False, sweep_param=sweep_param, fixed_h=fixed_h, fixed_W=fixed_W, 
-					rewrite=True, Dmp=Dmp, N_rep=N_rep, qtasks=qtasks,
+					rewrite=False, Dmp=Dmp, N_rep=N_rep, qtasks=qtasks,
 					back_action=back_action, meas_strength=meas_strength, monitor_axis=monitor_axis,
 					**kwargs)
 
@@ -491,13 +491,12 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
 			C_std = np.std(C, axis=1)
 
 			if store:
+
 				
 				path = 'results/data/'
 				if back_action:
 					path += f'back_action/{monitor_axis}/'
 					path_ms = f'_MeasStr_{meas_strength}'
-
-				path += f'N_meas{N_meas}/' if noise else 'N_measInf/'
 
 				path += f'{task_name}/'
 				pathend = f'{pm}_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_h{fixed_h}_W{fixed_W}_dt{dt}_ax_{ax_str}_cax_{cax_str}_sweep_delay'
@@ -505,8 +504,10 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
 				
 				if task_name == 'Qinp':
 					path += f'{strqtasks}/QRC/{inp_type}/'
+					path += f'N_meas{N_meas}/' if noise else 'N_measInf/'
 					pathlib.Path(path).mkdir(parents=True, exist_ok=True)
 					fname = path+pathend
+					q_task_dict={}
 					for i, qtask in enumerate(task.qtasks):
 						q_task_dict['C_mean '+qtask] = C_mean[:,i]
 						q_task_dict['C_std '+qtask] = C_std[:,i]                
@@ -600,14 +601,13 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
 					path += f'back_action/{monitor_axis}/'
 					path_ms = f'_MeasStr_{meas_strength}'
 
-				path += f'N_meas{N_meas}/' if noise else 'N_measInf/'
-
 				path += f'{task_name}/'
 				pathend = f'{pm}_L{L}_Js{Js}_V{Vmp}_D{Dmp}_Nrep{N_rep}_{fixed_str}{fixed_param}_dt{dt}_ax_{ax_str}_cax_{cax_str}_sweep{sweep_param}'
 				pathend += path_ms if back_action else ''
 
 				if task_name == 'Qinp':
 					path += f'{strqtasks}/QRC/{inp_type}/'
+					path += f'N_meas{N_meas}/' if noise else 'N_measInf/'
 					pathlib.Path(path).mkdir(parents=True, exist_ok=True)
 					fname = path + pathend
 					q_task_dict = {}
