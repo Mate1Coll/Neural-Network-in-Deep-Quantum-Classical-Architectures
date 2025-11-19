@@ -1,7 +1,7 @@
 """ This file contains utils functions for the different classes """
 
 import numpy as np
-from qutip import sigmax, sigmay, sigmaz, qeye, bell_state, ket2dm, tensor, Qobj, basis, expect, gates
+from qutip import sigmax, sigmay, sigmaz, qeye, bell_state, ket2dm, tensor, Qobj, basis, expect, gates, rand_dm
 
 def int_or_float(value):
     try:
@@ -250,7 +250,7 @@ def input_full_esn(inp, inp_type, axis=None):
 		for k, ax in enumerate(axis):
 			a[:, k] = np.array([expect(axis_op[ax], i) for i in inp])
 
-	elif inp_type in ['werner', 'x_state', '2qubit']:
+	elif inp_type in ['werner', 'x_state', '2qubit', 'rand_bell_mix']:
 
 		# validate axes (silently ignore unknown)
 		axis = [ax for ax in axis if ax in axis_op]
@@ -405,3 +405,28 @@ def statistical_noise(obs, N_meas, meas_strength, L, V, back_action, seed = 34):
 	# print('corr ', obs[2000:2003,91], noisy_obs[2000:2003,91])
 
 	return noisy_obs
+
+def concurrence_not_max(rho):
+    sy = sigmay()
+    Y = tensor(sy, sy)
+
+    # spin-flipped state
+    rho_tilde = Y * rho.conj() * Y
+
+    # R = sqrt( sqrt(rho) * rho_tilde * sqrt(rho) )
+    sqrt_rho = rho.sqrtm()
+    R = (sqrt_rho * rho_tilde * sqrt_rho).sqrtm()
+
+    # eigenvalues of R in decreasing order
+    evals = np.sort(np.real(R.eigenenergies()))[::-1]
+
+    # Wootters concurrence
+    C = evals[0] - evals[1] - evals[2] - evals[3]
+    return C
+
+def rand_bell_mixture(p, seed):
+
+	bell = bell_state('11')
+	Bell = bell * bell.dag()
+	rho = p * rand_dm(2*[2],seed=seed) + (1-p) * Bell
+	return rho

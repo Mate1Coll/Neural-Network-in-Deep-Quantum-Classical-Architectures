@@ -50,7 +50,7 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 		pm = 'NMSE', store=True, N_rep=1, qtasks=[], onlyesn=False, N_esn_solely=25,
 		all_info=False, qrc_prep_perf=False, inp_type='qubit',
 		back_action=False, monitor_axis='x', meas_strength=0.2,
-		noise=False, N_meas=1e5, **kwargs):
+		noise=False, N_meas=1e5, reg_prep_param=0, **kwargs):
 
 		""" This function computes the performance of the serie hybrid configuration.
 		In this case input signal is preprocessed via QRC by performing lienar regression for a time delay QRC smaller than the origianl target.
@@ -153,7 +153,10 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 					task_qrc.output_signals[qrc_delay:] = task_qrc.sigma_zxy_qinput[:-qrc_delay] if qrc_delay else task_qrc.sigma_zxy_qinput
 					task_qrc.split_data() # Get train and test data
 
-					clf = linear_model.LinearRegression(fit_intercept=False)
+					if not reg_prep_param:
+						clf = linear_model.LinearRegression(fit_intercept=False)
+					else:
+						clf = linear_model.Ridge(fit_intercept=False, alpha=reg_prep_param)
 					clf.fit(task_qrc.x_train, task_qrc.y_train)
 
 					if task_qrc.bias:

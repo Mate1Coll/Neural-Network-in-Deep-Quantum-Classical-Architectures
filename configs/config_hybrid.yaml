@@ -20,7 +20,7 @@ flags:
   load_obs: True
 
 esn_params:
-  N_esn: 45
+  N_esn: 180
   g: 0.25
   l: 0.001
   N_esn_solely: 180
@@ -31,20 +31,21 @@ common_params:
   N_iter: 100
   seed: 48
   store: True
-  inp_type: 'qubit'
+  inp_type: 'rand_bell_mix'
 
 perf_params:
   pm: "Fidelity"
   n_min_delay: 0
   n_max_delay: 15
   ratio_delay_qrc: 0.0
-  axis: ['x']
-  caxis: ['x']
+  axis: ['z','x','y']
+  caxis: ['z','x','y']
   ccaxis: []
   onlyesn: False
   qrc_prep_perf: False
   noise: False
   N_meas: 10000
+  reg_prep_param: 0
 
 # Particular tasks
 
@@ -107,7 +108,7 @@ all_qtasks:
     pm: "NMSE"
     g: 0.25
     l: 0.001
-    ratio_delay_qrc: 1.0
+    ratio_delay_qrc: 0.5
 
   Fidelity:
     qtasks: ['Fidelity']
