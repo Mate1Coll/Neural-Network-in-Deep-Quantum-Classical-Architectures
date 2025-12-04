@@ -62,7 +62,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
 			self.ccorr_ops[ccax] = ccorr_var if ccorr_var is not None else self.two_spins_correlations(axis=ccax)
 
 		self.random_rho_0 = random_rho_0 # Random initial matrix
-		self.trace_indices = list(range(2,self.L)) if self.task_name == 'Qinp' and self.inp_type in ['2qubit', 'werner', 'x_state', 'rand_bell_mix'] else list(range(1, self.L))
+		self.trace_indices = list(range(2,self.L)) if self.task_name == 'Qinp' and self.inp_type in ['2qubit', 'werner', 'x_state', 'rand_bell_mix', '2qubit_pure', '2qubit_rank2'] else list(range(1, self.L))
 		self.N_rep = N_rep
 
 		self.back_action = back_action
@@ -297,7 +297,7 @@ class QuantumReservoirDynamics(Hamiltonian, Tasks):
 	@staticmethod
 	def qrc_obs(
 		L, Js, N_iter, task_name="NARMA",
-		dt=10, axis=['z', 'x', 'y'], caxis=['z', 'x', 'y'], ccaxis=['zx', 'xy', 'zy'], Vmp=1,
+		dt=10, axis=['z', 'x', 'y'], caxis=['z', 'x', 'y'], ccaxis=[], Vmp=1,
 		max_bound_input=None, seed=None, store=True,
 		sweep_param="W", sweep_values=None, fixed_h=None, fixed_W=None, rewrite=False, qtasks=[],
 		Dmp=1, N_rep=1, back_action=False, meas_strength=0, monitor_axis='x', inp_type='qubit', **kwargs):

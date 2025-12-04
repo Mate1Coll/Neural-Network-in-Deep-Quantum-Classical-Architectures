@@ -10,19 +10,20 @@ if __name__ == "__main__":
     load_states = False # True if esn_performance load the stored data. False if computes the data without storing esn states
 
     # Common 
-    N_esn = 45
+    N_esn = 180
     task_name = "Qinp"
     pm = "Capacity"
-    N_iter = 1
+    N_iter = 10
     seed = 39
 
     # If task_name == Qinp
-    qtasks = ['Sigman']
-    axis = ['z', 'x', 'y']
+    qtasks = ['Fidelity']
+    axis = ['z','x','y']
+    inp_type = 'qubit'
 
     # Sweep values
-    sweep = False # If sweeping g and l (for performance)
-    n_val = 5 # Number of sweeping values for parameter
+    sweep = True # If sweeping g and l (for performance)
+    n_val = 10 # Number of sweeping values for parameter
     
     if task_name == "STM" or task_name == "NARMA":
         g_sweep_val = np.linspace(0.001, 1.5, num=n_val) 
@@ -40,16 +41,16 @@ if __name__ == "__main__":
             l_sweep_val = np.logspace(-6, -0.3, num=n_val)
             g_fixed = 4
             l_fixed = 1e-5
-        if any(x =='Tracerho2' or x == 'Entropy' for x in qtasks):
+        if any(x =='Tracerho2' or x == 'Entropy' or x == 'Entanglement' for x in qtasks):
             g_sweep_val = np.linspace(0.001, 1.5, num=n_val) 
             l_sweep_val = np.logspace(-5, -0.3, num=n_val)
             g_fixed = 0.25
             l_fixed = 1e-3
 
     n_min_delay = 0
-    n_max_delay = 15
+    n_max_delay = 40
 
-    store = False
+    store = True
     rewrite = False
 
     if states:
@@ -58,7 +59,7 @@ if __name__ == "__main__":
         EsnDynamics.esn_state_g_l(
             N_esn=N_esn, g_sweep_val=g_sweep_val, l_sweep_val=l_sweep_val,
             task_name=task_name, qtasks=qtasks, axis=axis, N_iter=N_iter, 
-            seed=seed, rewrite=rewrite)
+            seed=seed, rewrite=rewrite, inp_type=inp_type)
         end = context.time.time()
         print(f"Time taken for states : {end - start} seconds {(end - start) / 60} minutes, {(end - start) / 3600} hours")
 
@@ -69,7 +70,7 @@ if __name__ == "__main__":
             N_esn=N_esn, task_name=task_name, n_min_delay=n_min_delay, n_max_delay=n_max_delay,
             N_iter=N_iter, sweep=sweep, g_fixed=g_fixed, l_fixed=l_fixed, qtasks=qtasks, axis=axis,
             g_sweep_val=g_sweep_val, l_sweep_val= l_sweep_val,
-            pm=pm, load_data=load_states, seed=seed)
+            pm=pm, load_data=load_states, seed=seed, inp_type=inp_type)
         end = context.time.time()
         print(f"Time taken for performance : {end - start} seconds {(end - start) / 60} minutes, {(end - start) / 3600} hours")
 

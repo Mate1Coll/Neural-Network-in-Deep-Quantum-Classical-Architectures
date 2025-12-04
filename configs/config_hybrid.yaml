@@ -9,7 +9,7 @@ qrc_params:
   N_rep: 1
   Vmp: 10
   Dmp: 1
-  back_action: False
+  back_action: True
   monitor_axis: 'x'
   meas_strength: 10
 
@@ -20,31 +20,32 @@ flags:
   load_obs: True
 
 esn_params:
-  N_esn: 180
+  N_esn: 45
   g: 0.25
   l: 0.001
-  N_esn_solely: 180
+  N_esn_solely: 45
 
 common_params:
   task_name: "Qinp"
   qtasks: ['Tracerho2']
-  N_iter: 100
+  N_iter: 50
   seed: 48
   store: True
-  inp_type: 'rand_bell_mix'
+  inp_type: 'qubit'
 
 perf_params:
   pm: "Fidelity"
   n_min_delay: 0
-  n_max_delay: 15
+  n_max_delay: 4
   ratio_delay_qrc: 0.0
-  axis: ['z','x','y']
-  caxis: ['z','x','y']
+  axis: ['x']
+  caxis: ['x']
   ccaxis: []
   onlyesn: False
   qrc_prep_perf: False
-  noise: False
+  noise: True
   N_meas: 10000
+  noise_ridge_corr: False
   reg_prep_param: 0
 
 # Particular tasks
@@ -65,19 +66,14 @@ sweeps:
 sweepslurm:
   z:
     axis: ['z']
-    N_esn_solely: 45
   x:
     axis: ['x']
-    N_esn_solely: 45
   y:
     axis: ['y']
-    N_esn_solely: 45
   xy:
     axis: ['x','y']
-    N_esn_solely: 45
   zxy:
     axis: ['z','x','y']
-    N_esn_solely: 45
 
 # Optimized quantum task parameters
 
@@ -87,14 +83,14 @@ all_qtasks:
     pm: "NMSE"
     g: 0.25
     l: 0.001
-    ratio_delay_qrc: 0.5
+    ratio_delay_qrc: 1.0
 
   Entropy:
     qtasks: ['Entropy']
     pm: "NMSE"
     g: 0.25
     l: 0.001
-    ratio_delay_qrc: 0.5
+    ratio_delay_qrc: 1.0
 
   Sigman:
     qtasks: ['Sigman']
@@ -108,18 +104,25 @@ all_qtasks:
     pm: "NMSE"
     g: 0.25
     l: 0.001
-    ratio_delay_qrc: 0.5
+    ratio_delay_qrc: 1.0
 
   Fidelity:
     qtasks: ['Fidelity']
     pm: "Fidelity"
     g: 4
     l: 0.00001
-    ratio_delay_qrc: 0.0
+    ratio_delay_qrc: 1.0
   
   FidelityPurity:
     qtasks: ['Fidelity']
     pm: "FidelityPurity"
+    g: 4
+    l: 0.00001
+    ratio_delay_qrc: 0.0
+
+  FidelityEntanglement:
+    qtasks: ['Fidelity']
+    pm: "FidelityEntanglement"
     g: 4
     l: 0.00001
     ratio_delay_qrc: 0.0

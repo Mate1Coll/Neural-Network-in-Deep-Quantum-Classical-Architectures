@@ -4,7 +4,7 @@ from .quantum_reservoir import QuantumReservoirDynamics, load_observables_data, 
 from .esn import Esn, EsnDynamics
 from .tasks import linear_model, Tasks
 from .hamiltonian import Hamiltonian
-from .utils import load_readout_layer, np, ax_to_str, input_full_esn, statistical_noise
+from .utils import load_readout_layer, np, ax_to_str, input_full_esn, statistical_noise, Nmeas_RegPrepParam
 import matplotlib.pyplot as plt
 
 class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
@@ -50,7 +50,7 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 		pm = 'NMSE', store=True, N_rep=1, qtasks=[], onlyesn=False, N_esn_solely=25,
 		all_info=False, qrc_prep_perf=False, inp_type='qubit',
 		back_action=False, monitor_axis='x', meas_strength=0.2,
-		noise=False, N_meas=1e5, reg_prep_param=0, **kwargs):
+		noise=False, N_meas=1e5, reg_prep_param=0, noise_ridge_corr=False, **kwargs):
 
 		""" This function computes the performance of the serie hybrid configuration.
 		In this case input signal is preprocessed via QRC by performing lienar regression for a time delay QRC smaller than the origianl target.
@@ -114,7 +114,10 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 				obs = data['obs']
 			
 			if noise:
-				obs = statistical_noise(obs.copy(), N_meas, meas_strength, L, Vmp, back_action, seeds[it])
+				obs, noise_ofm = statistical_noise(obs.copy(), N_meas, meas_strength, L, Vmp, back_action, seeds[it])
+				if noise_ridge_corr:
+					reg_prep_param = Nmeas_RegPrepParam(Vmp, noise_ofm)
+					print(reg_prep_param)
 
 			task_qrc.x_out = obs[:, obs_idx] if not back_action else obs
 			task_qrc.input_signals = inp
@@ -157,6 +160,7 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 						clf = linear_model.LinearRegression(fit_intercept=False)
 					else:
 						clf = linear_model.Ridge(fit_intercept=False, alpha=reg_prep_param)
+					
 					clf.fit(task_qrc.x_train, task_qrc.y_train)
 
 					if task_qrc.bias:
@@ -182,8 +186,23 @@ class HybridDynamics(QuantumReservoirDynamics, EsnDynamics):
 					if onlyesn:
 						solely_esn.get_output_signal(qtasks=[task_hyb.qtasks[i]])
 						C_esn[i,j,it] = solely_esn.performance()
+						# if task_hyb.n_max_delay == 15 and solely_esn.n_max_delay == 15:
+						# 	plt.rcParams.update({'font.size': 20, 'font.family': 'serif'})
+						# 	plt.rcParams['axes.titlesize'] = 20
+						# 	plt.rcParams['lines.linewidth'] = 3
+						# 	plt.rcParams['axes.linewidth'] = 2
+						# 	fig, ax = plt.subplots(figsize=(12,5), ncols=1, nrows=1)
+						# 	ax.plot(range(3180,3250),np.maximum(0,task_hyb.y_test[180:250]), marker='D', color='k', markeredgecolor='k', markeredgewidth=1.5,
+						# 			label='Target')
+						# 	ax.plot(range(3180,3250),np.maximum(0,task_hyb.y_pred[180:250]), linewidth=2, marker='o', color='lime', markeredgecolor='k',
+						# 			markeredgewidth=1.5, label='Prediction')
+						# 	ax.plot(range(3180,3250),np.maximum(0,solely_esn.y_pred[180:250]), linewidth=2, marker='o', color='dodgerblue', markeredgecolor='k',
+						# 			markeredgewidth=1.5, label='Prediction')
+						# 	ax.set_xlabel('k')
+						# 	ax.set_ylabel(r'C($\rho_{1,2}$)')
+						# 	ax.legend(loc='best', frameon=False)
+						# 	plt.show()
 			
-					
 		C_mean = np.mean(C, axis=2) 
 		C_std = np.std(C, axis=2)
 

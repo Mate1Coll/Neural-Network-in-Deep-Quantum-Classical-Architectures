@@ -178,7 +178,6 @@ if __name__ == "__main__":
                 dict_slurm = local_config["sweepslurm"][args.axis]
                 local_config["perf_params"]["axis"] = dict_slurm["axis"]
                 local_config["perf_params"]["caxis"] = dict_slurm["axis"]
-                local_config["esn_params"]["N_esn_solely"] = dict_slurm["N_esn_solely"]
                 printed = True
             
             if args.N_meas:

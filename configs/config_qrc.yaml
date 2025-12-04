@@ -15,7 +15,7 @@ qrc_params:
   qtasks: ['Tracerho2']
   seed: 48
   random_rho_0: False
-  inp_type: 'rand_bell_mix'
+  inp_type: '2qubit'
   back_action: False
   meas_strength: 0.1
   monitor_axis: 'x'
@@ -23,7 +23,7 @@ qrc_params:
 perf_params:
   pm: 'Capacity'
   n_min_delay: 0
-  n_max_delay: 15
+  n_max_delay: 5
   axis: ['x'] # Axis to consider for the readout layer for performance (It is IMPORTANT that the order must be ['z', 'x', 'y']!)
   caxis: ['x']
   ccaxis: [] # Order 'zx', 'xy', 'zy'
@@ -59,19 +59,19 @@ all_qtasks:
   Tracerho2:
     qtasks: ['Tracerho2']
     pm: "NMSE"
-    dt: 100
-    fixed_h: 0.5
+    dt: 5
+    fixed_h: 3
 
   Entropy:
     qtasks: ['Entropy']
     pm: "NMSE"
-    dt: 100
-    fixed_h: 0.5
+    dt: 5
+    fixed_h: 3
 
   Sigman:
     qtasks: ['Sigman']
     pm: "NMSE"
-    dt: 0.5
+    dt: 5
     fixed_h: 3
 
   Entanglement:

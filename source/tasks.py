@@ -11,7 +11,8 @@ class Tasks(BaseSeededClass):
 
 	""" Class to define the tasks for the input signals. """
 
-	def __init__(self, n_max_delay, task_name, n_steps=4000, n_wo=1000, n_train=2000, n_test=1000, bias=True, max_bound_input=None, pm='Capacity', qtasks=[], inp_type='qubit', **kwargs):
+	def __init__(self, n_max_delay, task_name, n_steps=4000, n_wo=1000, n_train=2000, n_test=1000,
+			   	bias=True, max_bound_input=None, pm='Capacity', qtasks=[], inp_type='qubit', **kwargs):
 
 		"""
 		Initialize the Tasks class.
@@ -41,7 +42,7 @@ class Tasks(BaseSeededClass):
 		if task_name not in [f"NARMA", "STM", "PC", "Qinp"]:
 			raise ValueError("task_name must be 'NARMA', 'STM', 'PC', 'Qinp''.")
 		
-		if pm not in ["Capacity", "NMSE", "Fidelity", "FidelityPurity"]:
+		if pm not in ["Capacity", "NMSE", "Fidelity", "FidelityPurity", "FidelityEntanglement"]:
 			raise ValueError("Performance metric (pm) mus be 'Capacity', 'NMSE' or 'Fidelity.")
 
 		self.n_steps = n_steps # number of time steps for the time evolution
@@ -136,9 +137,13 @@ class Tasks(BaseSeededClass):
 			elif self.inp_type == 'x_state':
 				self.input_signals = np.array([random_x_state(s) for s in seeds])
 			elif self.inp_type == 'rand_bell_mix':
-				p_val = self.rng.uniform(0,1, size=(self.n_steps))
+				p_val = self.rng.uniform(0,0.6, size=(self.n_steps))
 				self.input_signals = np.array([rand_bell_mixture(p, s) for p, s in zip(p_val, seeds)])
-				print(self.input_signals.shape)
+			elif self.inp_type == '2qubit_pure':
+				self.input_signals = np.array([qutip.rand_dm(2*[2], distribution='ginibre', seed=s, rank=1) for s in seeds]) # input signal of density matrices
+			elif self.inp_type == '2qubit_rank2':
+				self.input_signals = np.array([qutip.rand_dm(2*[2], distribution='ginibre', seed=s, rank=2) for s in seeds]) # input signal of density matrices
+			
 
 		return self.input_signals
 	
@@ -192,7 +197,7 @@ class Tasks(BaseSeededClass):
 			self.sigma_zxy_qinput[:, 1] = np.array(qutip.expect(sx, list(self.input_signals))) # Sigma x
 			self.sigma_zxy_qinput[:, 2] = np.array(qutip.expect(sy, list(self.input_signals))) # Sigma y
 
-		elif inp_type in ['werner', 'x_state', '2qubit', '2qubit1', 'rand_bell_mix']:
+		elif inp_type in ['werner', 'x_state', '2qubit', '2qubit1', 'rand_bell_mix', '2qubit_pure', '2qubit_rank2']:
 
 			# Define the single-qubit Pauli basis
 			paulis = [qeye(2), sigmax(), sigmay(), sigmaz()]
@@ -399,19 +404,19 @@ class Tasks(BaseSeededClass):
 		"""
 
 		self.split_data() # split the data into training and testing sets
-		print(ridge)
 		
 		if ridge:
-			clf = linear_model.Ridge(fit_intercept=False, alpha=1e-5) # we do not intercept value (b=0), then y = Wx.
+			clf = linear_model.Ridge(fit_intercept=False, alpha=1e-10) # we do not intercept value (b=0), then y = Wx.
 		else:
 			clf = linear_model.LinearRegression(fit_intercept=False) # we do not intercept value (b=0), then y = Wx.
 
 		clf.fit(self.x_train, self.y_train)
+		W = clf.coef_; print('Total_norm', np.sqrt(np.sum(W * W)))
 		self.y_pred = clf.predict(self.x_test); self.y_pred_debugg = clf.predict(self.x_train)
 
 		return self.y_pred
 	
-	def get_pm(self, y_test, y_pred):
+	def get_pm(self, y_test, y_pred, debugg=False):
 		
 		""" This method returns the performance metric """
 
@@ -423,11 +428,15 @@ class Tasks(BaseSeededClass):
 			C = np.corrcoef(y_test, y_pred, rowvar=False)[0, 1]**2 # Square pearson corr
 		elif self.pm == 'NMSE':
 			C = np.mean((y_pred - y_test)**2) / np.var(y_test)       
-		elif self.pm == 'Fidelity':
+		elif self.pm.startswith('Fidelity'):
 
 			tau = self.n_max_delay
-			t0 = self.n_wo + self.n_train        # test starts here
-			t1 = t0 + self.n_test                # test ends here (exclusive)
+			if debugg:
+				t0 = self.n_wo # train starts here
+				t1 = t0 + self.n_train
+			else:
+				t0 = self.n_wo + self.n_train        # test starts here
+				t1 = t0 + self.n_test                # test ends here (exclusive)
 
 			# Reconstruct predicted states
 			if self.inp_type == 'qubit':
@@ -444,57 +453,51 @@ class Tasks(BaseSeededClass):
 			# Step 3: Sanity check
 			assert len(new_rho_checked) == len(self.delayed_input_state), "Mismatch in lengths"
 
-			# Step 4: Compute fidelity^2 only for valid states
-			F_list = []
-			for rho, idm in zip(new_rho_checked, self.delayed_input_state):
-				if rho is not None:
-					F_list.append(fidelity(idm, rho)**2)
+			if self.pm == 'Fidelity':
 
-			# Step 5: Average
-			C = np.mean(F_list)
-			
-			# j=0
-			# for i,f in enumerate(F_list):
-			#     if f>1:
-			#         print(i, f, new_rho[i].eigenenergies())
-			#         j+=1
+				# Step 4: Compute fidelity^2 only for valid states
+				F_list = []
+				for rho, idm in zip(new_rho_checked, self.delayed_input_state):
+					if rho is not None:
+						fidel = fidelity(idm, rho)**2
+						if fidel > 1:
+							print(fidel)
+						fidel = min(max(fidel, 0), 1)   # clip to [0, 1]
+						F_list.append(fidel)
+				
+				print(len(F_list))
+				# Step 5: Average
+				C = np.mean(F_list)
 
-			# print(np.max(C))
-			# print(len(F_list))
+			elif self.pm == 'FidelityPurity':
 
-		elif self.pm == 'FidelityPurity':
+				# Step 4: Compute purity only for valid states
+				delay_purity = []
+				reconstruct_purity = []
+				for rho, idm in zip(new_rho_checked, self.delayed_input_state):
+					if rho is not None:
+						reconstruct_purity.append(rho.purity())
+						delay_purity.append(idm.purity())
 
-			tau = self.n_max_delay
-			t0 = self.n_wo + self.n_train        # test starts here
-			t1 = t0 + self.n_test                # test ends here (exclusive)
+				delay_purity = np.array(delay_purity)
+				reconstruct_purity = np.array(reconstruct_purity)
 
-			# Reconstruct predicted states
-			if self.inp_type == 'qubit':
-				new_rho = np.array([reconstruct_rho(sz, sx, sy) for sz, sx, sy in y_pred])
-			else:
-				new_rho = np.array([reconstruct_2qubit(a) for a in y_pred])
+				C = np.mean((reconstruct_purity - delay_purity)**2) / np.var(delay_purity)
 
-			# Step 1: Mark nonphysical states as None
-			new_rho_checked = [rho if ensure_physical(rho) else None for rho in new_rho]
+			elif self.pm == 'FidelityEntanglement':
 
-			# Step 2: Get the delayed targets
-			self.delayed_input_state = self.input_signals[t0 - tau : t1 - tau]
+				# Step 4: Compute concurrence only for valid states
+				delay_conc = []
+				reconstruct_conc = []
+				for rho, idm in zip(new_rho_checked, self.delayed_input_state):
+					if rho is not None:
+						reconstruct_conc.append(concurrence(rho))
+						delay_conc.append(concurrence(idm))
 
-			# Step 3: Sanity check — are we really comparing shifted values?
-			assert len(new_rho) == len(self.delayed_input_state), "Mismatch in predicted and reference lengths"
+				delay_conc = np.array(delay_conc)
+				reconstruct_conc = np.array(reconstruct_conc)
 
-			# Step 4: Compute fidelity^2 only for valid states
-			delay_purity = []
-			reconstruct_purity = []
-			for rho, idm in zip(new_rho_checked, self.delayed_input_state):
-				if rho is not None:
-					reconstruct_purity.append(rho.purity())
-					delay_purity.append(idm.purity())
-
-			delay_purity = np.array(delay_purity)
-			reconstruct_purity = np.array(reconstruct_purity)
-
-			C = np.mean((reconstruct_purity - delay_purity)**2) / np.var(delay_purity)
+				C = np.mean((reconstruct_conc - delay_conc)**2) / np.var(delay_conc)
 
 		return C
 
@@ -533,8 +536,16 @@ class Tasks(BaseSeededClass):
 		# 	ax.set_ylabel(r'C($\rho_{1,2}$)')
 		# 	ax.legend(loc='best', frameon=False)
 		# 	plt.show()
+
 		print(f'Check iteration delay {self.n_max_delay}----------------------------')
 		print('test_window: ', self.C)
-		print('task.window: ', self.get_pm(self.y_train, self.y_pred_debugg))
+		C_debugg = self.get_pm(self.y_train, self.y_pred_debugg, debugg=True)
+		print('task.window: ', C_debugg)
+		if 'Fidelity' in self.qtasks:
+			C = 1 - self.C
+			C_debugg = 1 - C_debugg
+		else:
+			C = self.C
+		print('Error difference ', (C - C_debugg)/C_debugg * 100 ,'%')
 		
 		return self.C

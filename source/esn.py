@@ -102,28 +102,28 @@ class EsnDynamics(Esn, Tasks):
 
         return Esn.__str__(self) + "\n" + Tasks.__str__(self)
     
-    def get_qinput_to_classical(self):
+    # def get_qinput_to_classical(self):
 
-        """ Transforms the quantum input as classical """
+    #     """ Transforms the quantum input as classical """
 
-        qtL = self.nqtasks
-        qinp_to_clas = np.zeros((qtL, self.n_steps))
-        j=0
+    #     qtL = self.nqtasks
+    #     qinp_to_clas = np.zeros((qtL, self.n_steps))
+    #     j=0
 
-        for qtask in self.qtasks:
-            if qtask == "Trace":
-                dm2 = np.array([i*i for i in self.input_signals])
-                qinp_to_clas[j] = np.array([m.tr() for m in dm2])
-                j+=1
-            if qtask == "Det":
-                qinp_to_clas[j] = np.array([abs(np.linalg.det(i.full())) for i in self.input_signals])
-                j+=1
-            if qtask == "Entropy":
-                eigval = np.array([i.eigenenergies() for i in self.input_signals])
-                qinp_to_clas[j] = np.array([-np.sum(e*np.log(e)) for e in eigval])
-                j+=1
+    #     for qtask in self.qtasks:
+    #         if qtask == "Trace":
+    #             dm2 = np.array([i*i for i in self.input_signals])
+    #             qinp_to_clas[j] = np.array([m.tr() for m in dm2])
+    #             j+=1
+    #         if qtask == "Det":
+    #             qinp_to_clas[j] = np.array([abs(np.linalg.det(i.full())) for i in self.input_signals])
+    #             j+=1
+    #         if qtask == "Entropy":
+    #             eigval = np.array([i.eigenenergies() for i in self.input_signals])
+    #             qinp_to_clas[j] = np.array([-np.sum(e*np.log(e)) for e in eigval])
+    #             j+=1
 
-        return qinp_to_clas
+    #     return qinp_to_clas
 
     
     def input_signal_reshape(self):
@@ -179,7 +179,7 @@ class EsnDynamics(Esn, Tasks):
 
         """ Computes the state reservoir dynamics of the readout layer of the ESN """
 
-        esn = EsnDynamics(N_esn, g, l, task_name=task_name, qtasks=qtasks, n_max_delay = 0, seed=seed)
+        esn = EsnDynamics(N_esn, g, l, task_name=task_name, qtasks=qtasks, n_max_delay = 0, seed=seed, inp_type=inp_type)
         esn.get_input_signal()
 
         if task_name == "Qinp":
@@ -203,7 +203,7 @@ class EsnDynamics(Esn, Tasks):
     
     @staticmethod
     def esn_state_g_l(N_esn, g_sweep_val, l_sweep_val, task_name, N_iter, qtasks=[], axis=['x'],
-                      seed=None, rewrite=False, store=True):
+                      seed=None, rewrite=False, store=True, inp_type='qubit'):
 
         """ Computes the state of the reservoir for various combiantions of g and l values. """
 
@@ -211,7 +211,6 @@ class EsnDynamics(Esn, Tasks):
         seeds = rng.integers(0, 1e9, size=N_iter)
 
         ax_str , _ = ax_to_str(axis=axis, caxis=[])
-        inp_type = 'werner' if 'Entanglement' in qtasks else 'qubit'
 
         if type(g_sweep_val) in [int, float]:
             g_sweep_val = [g_sweep_val]
@@ -222,9 +221,9 @@ class EsnDynamics(Esn, Tasks):
             for l in l_sweep_val:
 
                 if qtasks == 'Qinp':
-                    dir_path = f'results/data/{task_name}/ESN/{inp_type}/ESN_Nesn{N_esn}_g{g}_l{l}_ax_{ax_str}_{inp_type}/'
+                    dir_path = f'results/data/{task_name}/ESN/{inp_type}/ESN_Nesn{N_esn}_g{g}_l{l}_ax_{ax_str}/'
                 else:
-                    dir_path = f'results/data/{task_name}/ESN/{inp_type}/ESN_Nesn{N_esn}_g{g}_l{l}/'
+                    dir_path = f'results/data/{task_name}/ESN/ESN_Nesn{N_esn}_g{g}_l{l}/'
                 missing_k = []
 
                 if rewrite:
@@ -243,7 +242,7 @@ class EsnDynamics(Esn, Tasks):
                         continue
 
                 args = [
-                    (N_esn, g, l, task_name, idx_iter, axis, qtasks, seeds[k], store)
+                    (N_esn, g, l, task_name, idx_iter, axis, qtasks, seeds[k], store, inp_type)
                     for k, idx_iter in enumerate(missing_k)
                 ]
 
@@ -293,7 +292,7 @@ class EsnDynamics(Esn, Tasks):
                         data = EsnDynamics.esn_state_g_l(
                             N_esn, g_sweep_val=[g], l_sweep_val=[l], task_name=task_name,
                             qtasks=qtasks, axis=axis, N_iter=N_iter, seed=seed,
-                            rewrite=True, store=False)
+                            rewrite=True, store=False, inp_type=inp_type)
                         
                     for it in range(N_iter):
 
@@ -364,7 +363,7 @@ class EsnDynamics(Esn, Tasks):
                 data = EsnDynamics.esn_state_g_l(
                     N_esn, g_sweep_val=[g_fixed], l_sweep_val=[l_fixed], task_name=task_name,
                     qtasks=qtasks, axis=axis, N_iter=N_iter, seed=seed, 
-                    rewrite=True, store=False)
+                    rewrite=True, store=False, inp_type=inp_type)
                 
             for it in range(N_iter):
 
